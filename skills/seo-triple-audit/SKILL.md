@@ -62,6 +62,12 @@ The wrapper runs aggressive settings:
 
 Static sites: add `--no-browser` for faster runs.
 
+**Browser binary:** On the founder laptop, `ss-seo-audit` auto-uses Brave Origin
+(`/opt/brave-origin-bin/brave`) — not Google Chrome. crawlie uses `$CHROME`;
+SiteOne uses `--browser-path`. Override: `SHADOW_SEO_BROWSER=/path/to/chromium`
+or `ss-seo-audit --browser-path …`. If no browser is found, the command exits
+with a clear error (use `--no-browser` to skip JS rendering).
+
 ## Individual tools
 
 ```bash
