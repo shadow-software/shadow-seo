@@ -27,6 +27,10 @@ coverage:
 # Install once (idempotent, no sudo)
 ~/Source/shadow-founder-toolset/install/laptop/install-seo-crawlers.sh
 
+# WDK (WordPress staging) — primary WordPress triple-audit target
+ss-seo-audit-wdk
+# same as: ss-seo-audit --start wdk
+
 # Audit a local estate app (starts server, waits, runs all three)
 ss-seo-audit --start shadowsoftware
 
@@ -76,9 +80,19 @@ ss-crawlie-crawl crawl http://127.0.0.1:8999/ --render --format json --fail-on w
 
 ## Local estate app IDs
 
-See `shadow-founder-toolset/docs/local-estate.md` — common targets: `agt` (8082),
-`dabdash` (8000), `shadowsoftware` (8999), `raywinkelman` (4321), WordPress
-staging hosts, PWAs.
+See `shadow-founder-toolset/docs/local-estate.md` — common targets:
+
+| Alias | App id | URL |
+| --- | --- | --- |
+| **wdk** | `weeddeliverykelowna` | `http://staging.weeddeliverykelowna.localhost:8092` |
+| — | `agt` | `http://127.0.0.1:8082` |
+| — | `dabdash` | `http://127.0.0.1:8000` |
+| — | `shadowsoftware` | `http://127.0.0.1:8999` |
+| — | `raywinkelman` | `http://127.0.0.1:4321` |
+
+WDK is Docker Compose WordPress — use default `--browser` / crawlie `--render`
+(Elementor/JS). Ensure `*.localhost` resolves to loopback in your browser; the
+crawler uses the staging hostname from `estate.json`.
 
 ## Pair with Lighthouse
 
