@@ -27,9 +27,12 @@ coverage:
 # Install once (idempotent, no sudo)
 ~/Source/shadow-founder-toolset/install/laptop/install-seo-crawlers.sh
 
-# WDK (WordPress staging) — primary WordPress triple-audit target
-ss-seo-audit-wdk
-# same as: ss-seo-audit --start wdk
+# WDK (WordPress staging) — unified audit with profile merge
+ss-seo-audit-wdk --profile wdk
+# same as: ss-seo-audit --start wdk --profile wdk
+
+# Lightweight (n8n / quick check)
+ss-seo-audit --quick --profile shadowsoftware --url=https://shadowsoftware.com/
 
 # Audit a local estate app (starts server, waits, runs all three)
 ss-seo-audit --start shadowsoftware
