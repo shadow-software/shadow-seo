@@ -9,6 +9,7 @@ Usage:
 
 import argparse
 import json
+import re
 from collections import Counter
 from datetime import datetime, timezone
 from typing import Any
@@ -197,16 +198,15 @@ def inspect_url(session: requests.Session, url: str, timeout: int) -> dict[str, 
         lowered = text.lower()
         noindex = False
         if response.status_code == 200 and html_like:
-            marker = 'rel="canonical"'
-            if marker in lowered:
-                idx = lowered.index(marker)
-                href_marker = 'href="'
-                href_idx = lowered.rfind(href_marker, max(0, idx - 400), idx + 400)
-                if href_idx != -1:
-                    href_start = href_idx + len(href_marker)
-                    href_end = text.find('"', href_start)
-                    if href_end != -1:
-                        canonical = text[href_start:href_end].strip()
+            # Parse the canonical from its own link element. The former
+            # proximity scan could select a later unrelated href (for example
+            # llms.txt) when a document had several links in the same head.
+            for link_tag in re.findall(r"<link\b[^>]*>", text, flags=re.IGNORECASE):
+                rel = re.search(r"\brel\s*=\s*(['\"])(.*?)\1", link_tag, flags=re.IGNORECASE | re.DOTALL)
+                href = re.search(r"\bhref\s*=\s*(['\"])(.*?)\1", link_tag, flags=re.IGNORECASE | re.DOTALL)
+                if rel and href and "canonical" in rel.group(2).lower().split():
+                    canonical = href.group(2).strip()
+                    break
             x_robots = response.headers.get("X-Robots-Tag", "").lower()
             noindex = "noindex" in x_robots or 'content="noindex' in lowered or 'content="noindex,' in lowered or "name=\"robots\"" in lowered and "noindex" in lowered
 
