@@ -16,7 +16,16 @@ from typing import Any
 from bs4 import BeautifulSoup
 
 from parse_html import parse_html
-from seo_pipeline_utils import DEFAULT_TIMEOUT, build_session, load_json_if_present, now_iso, page_type_for, url_slug, validate_public_url
+from seo_pipeline_utils import (
+    DEFAULT_TIMEOUT,
+    build_session,
+    html_parse_unreliable,
+    load_json_if_present,
+    now_iso,
+    page_type_for,
+    url_slug,
+    validate_public_url,
+)
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -82,6 +91,8 @@ def infer_recommended_types(page_type: str, business_type: str) -> list[str]:
             recommendations.append("Organization")
     elif page_type == "blog_post":
         recommendations.extend(["Article", "BreadcrumbList"])
+    elif page_type == "help_hub":
+        recommendations.extend(["CollectionPage", "WebPage", "BreadcrumbList"])
     elif page_type in {"product_page", "service_page"}:
         recommendations.extend(["Product" if page_type == "product_page" else "Service", "BreadcrumbList"])
     return list(dict.fromkeys(recommendations))
@@ -147,6 +158,8 @@ def analyze_schema(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
     site_meta = load_json_if_present(ROOT / ".seo-cache" / "site-meta.json") or {}
     page_type = page_type_for(response.url, parse_data)
     business_type = site_meta.get("business_type", "generic website")
+    content_type = response.headers.get("Content-Type", "")
+    parse_unreliable = html_parse_unreliable(parse_data, response.status_code, content_type)
 
     detected_types = extract_detected_types(parse_data.get("schema", []))
     invalid_jsonld = collect_invalid_jsonld_blocks(soup)
@@ -157,7 +170,12 @@ def analyze_schema(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
     issues: list[str] = []
     recommendations: list[str] = []
 
-    if not detected_types and not microdata_count and not rdfa_count:
+    if parse_unreliable:
+        recommendations.append(
+            "HTML parse was unreliable (empty body/title, non-HTML response, or non-200 status); "
+            "re-fetch with a browser user-agent before treating schema gaps as product defects."
+        )
+    elif not detected_types and not microdata_count and not rdfa_count:
         issues.append("No schema markup was detected on the page.")
         validation = "warnings"
     if invalid_jsonld:
@@ -177,12 +195,12 @@ def analyze_schema(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
 
     recommended_types = infer_recommended_types(page_type, business_type)
     missing_recommended = [schema_type for schema_type in recommended_types if schema_type not in detected_types]
-    if missing_recommended:
+    if not parse_unreliable and missing_recommended:
         issues.append(f"Recommended schema type(s) are missing: {', '.join(missing_recommended)}.")
         recommendations.append(f"Add {', '.join(missing_recommended)} markup aligned with the current page intent.")
         validation = "warnings" if validation == "valid" else validation
 
-    if not parse_data.get("canonical"):
+    if not parse_unreliable and not parse_data.get("canonical"):
         issues.append("Schema recommendations are less trustworthy because the page lacks a canonical URL.")
         recommendations.append("Add a self-referencing canonical before expanding structured-data coverage.")
 
@@ -190,11 +208,14 @@ def analyze_schema(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
         recommendations.append("Existing schema coverage is in reasonable shape. Focus on keeping values factual and server-rendered.")
 
     score = 100
-    if not detected_types and not microdata_count and not rdfa_count:
-        score -= 35
+    if parse_unreliable:
+        score = max(score - 8, 0)
+    else:
+        if not detected_types and not microdata_count and not rdfa_count:
+            score -= 35
+        score -= min(len(missing_recommended) * 8, 24)
     score -= invalid_jsonld * 20
     score -= len(deprecated_hits) * 10
-    score -= min(len(missing_recommended) * 8, 24)
     score = max(score, 0)
 
     return {

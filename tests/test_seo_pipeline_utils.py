@@ -7,7 +7,14 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 
-from seo_pipeline_utils import detect_business_type, url_slug, validate_public_url  # noqa: E402
+from seo_pipeline_utils import (  # noqa: E402
+    detect_business_type,
+    html_parse_unreliable,
+    page_type_for,
+    severity_for_issue,
+    url_slug,
+    validate_public_url,
+)
 
 
 def test_url_slug_homepage():
@@ -28,6 +35,24 @@ def test_detect_business_type_saas():
     business_type, industry = detect_business_type(parse_data, "Start free and book demo today", "https://example.com")
     assert business_type == "saas"
     assert industry == "software"
+
+
+def test_html_parse_unreliable_empty_title_and_body():
+    assert html_parse_unreliable({"title": "", "word_count": 0}, status_code=200, content_type="text/html")
+
+
+def test_html_parse_unreliable_non_html():
+    assert html_parse_unreliable({"title": "x", "word_count": 10}, status_code=200, content_type="application/json")
+
+
+def test_page_type_for_help_hub():
+    parse_data = {"schema": []}
+    assert page_type_for("https://example.com/help", parse_data) == "help_hub"
+    assert page_type_for("https://example.com/help/getting-started", parse_data) == "help_hub"
+
+
+def test_severity_for_issue_noindex_is_not_critical():
+    assert severity_for_issue("The page exposes a noindex directive.") == "high"
 
 
 def test_validate_public_url_blocks_local_and_metadata_hosts():

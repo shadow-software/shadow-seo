@@ -19,7 +19,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from parse_html import parse_html
-from seo_pipeline_utils import build_session, validate_public_url
+from seo_pipeline_utils import build_session, page_type_for, validate_public_url
 
 
 DEFAULT_TIMEOUT = 20
@@ -100,22 +100,6 @@ def visible_text_metrics(soup: BeautifulSoup) -> dict[str, Any]:
     }
 
 
-def page_type_for(url: str, parse_data: dict[str, Any]) -> str:
-    """Infer page type from URL and page structure."""
-    path = urlparse(url).path.lower().strip("/")
-    if not path:
-        return "homepage"
-    if "/blog/" in f"/{path}/" or parse_data["schema"] and any("Article" in json.dumps(item) for item in parse_data["schema"]):
-        return "blog_post"
-    if any(token in path for token in ["pricing", "product", "features"]):
-        return "product_page"
-    if any(token in path for token in ["service", "services"]):
-        return "service_page"
-    if any(token in path for token in ["location", "locations", "city"]):
-        return "location_page"
-    return "marketing_page"
-
-
 def min_words_for_page(page_type: str) -> int:
     """Return word-count floor by page type."""
     return {
@@ -125,6 +109,7 @@ def min_words_for_page(page_type: str) -> int:
         "product_page": 300,
         "location_page": 500,
         "marketing_page": 600,
+        "help_hub": 400,
     }.get(page_type, 500)
 
 
@@ -269,7 +254,8 @@ def analyze_content(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
     issues: list[str] = []
     recommendations: list[str] = []
 
-    if text_metrics["word_count"] < min_words:
+    meta_robots = (parse_data.get("meta_robots") or "").lower()
+    if text_metrics["word_count"] < min_words and "noindex" not in meta_robots:
         issues.append(f"Word count ({text_metrics['word_count']}) is below the recommended floor for a {page_type.replace('_', ' ')} ({min_words}).")
         recommendations.append("Expand the page with more complete topical coverage, proof points, and supporting detail.")
     if not parse_data["h2"]:

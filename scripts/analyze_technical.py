@@ -17,7 +17,15 @@ from analyze_performance import analyze_performance
 from analyze_sitemap import build_report as build_sitemap_report
 from fetch_page import GOOGLEBOT_USER_AGENT, fetch_page
 from parse_html import parse_html
-from seo_pipeline_utils import DEFAULT_TIMEOUT, build_session, now_iso, status_from_score, url_slug, validate_public_url
+from seo_pipeline_utils import (
+    DEFAULT_TIMEOUT,
+    build_session,
+    html_parse_unreliable,
+    now_iso,
+    status_from_score,
+    url_slug,
+    validate_public_url,
+)
 
 
 SECURITY_HEADERS = [
@@ -51,6 +59,8 @@ def analyze_technical(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, obj
     response = session.get(normalized_url, timeout=timeout, allow_redirects=True)
 
     parse_data = parse_html(response.text, response.url)
+    content_type = response.headers.get("Content-Type", "")
+    parse_unreliable = html_parse_unreliable(parse_data, response.status_code, content_type)
     sitemap = build_sitemap_report(response.url, timeout=timeout, check_limit=100)
     performance = analyze_performance(response.url, timeout=timeout)
     robots_url = f"{urlparse(response.url).scheme}://{urlparse(response.url).netloc}/robots.txt"
@@ -75,12 +85,14 @@ def analyze_technical(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, obj
     meta_robots = (parse_data.get("meta_robots") or "").lower()
     if response.status_code != 200:
         indexability_score -= 40
-    if "noindex" in meta_robots:
-        indexability_score -= 25
-    if not parse_data.get("canonical"):
-        indexability_score -= 12
-    elif parse_data["canonical"].rstrip("/") != response.url.rstrip("/"):
-        indexability_score -= 10
+    intentional_noindex = "noindex" in meta_robots
+    if intentional_noindex:
+        indexability_score -= 8
+    if not parse_unreliable:
+        if not parse_data.get("canonical"):
+            indexability_score -= 12
+        elif parse_data["canonical"].rstrip("/") != response.url.rstrip("/"):
+            indexability_score -= 10
     indexability_score = max(indexability_score, 0)
 
     header_names = {name.lower(): value for name, value in response.headers.items()}
@@ -139,12 +151,14 @@ def analyze_technical(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, obj
         recommendations.append("Publish a root-level robots.txt that clearly references the sitemap.")
     if sitemap.get("issues"):
         issues.extend(sitemap["issues"][:2])
-    if "noindex" in meta_robots:
-        issues.append("The page exposes a noindex directive.")
-        recommendations.append("Confirm that the page should remain excluded from indexing.")
-    if not parse_data.get("canonical"):
-        issues.append("No canonical URL was detected.")
-        recommendations.append("Add a self-referencing canonical tag to stabilize indexation signals.")
+    if intentional_noindex:
+        recommendations.append(
+            "The page exposes an intentional noindex directive — confirm thin/programmatic exclusions stay deliberate."
+        )
+    if not parse_unreliable:
+        if not parse_data.get("canonical"):
+            issues.append("No canonical URL was detected.")
+            recommendations.append("Add a self-referencing canonical tag to stabilize indexation signals.")
     if security_score < 80:
         missing_headers = [header for header in SECURITY_HEADERS if header not in header_names]
         issues.append(f"Important security headers are missing: {', '.join(missing_headers)}.")
@@ -152,14 +166,36 @@ def analyze_technical(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, obj
     if cwv_score < 80:
         issues.extend(performance["issues"][:2])
         recommendations.extend(performance["recommendations"][:2])
-    if not js_rendering_ok:
+    if not parse_unreliable and not js_rendering_ok:
         issues.append("Critical SEO content is not strongly evident in the initial HTML response.")
         recommendations.append("Serve titles, canonicals, meta directives, structured data, and key copy in server-rendered HTML.")
     if not indexnow_detected:
         issues.append("IndexNow support was not detected.")
         recommendations.append("Consider IndexNow if faster Bing/Yandex discovery matters to the publishing workflow.")
+    if parse_unreliable:
+        recommendations.append(
+            "HTML parse was unreliable (empty body/title, non-HTML response, or non-200 status); "
+            "re-fetch with a browser user-agent before treating indexability or JS-rendering gaps as defects."
+        )
 
     score = round(sum(category_scores.values()) / len(category_scores))
+
+    findings: dict[str, str] = {
+        "indexability": "indexable" if indexability_score >= 80 else "at risk",
+        "mobile": status_from_score(mobile_score),
+        "cwv": status_from_score(cwv_score),
+    }
+    if not parse_unreliable:
+        findings["canonicals"] = (
+            "self-referential"
+            if parse_data.get("canonical") and parse_data["canonical"].rstrip("/") == response.url.rstrip("/")
+            else "missing or mismatched"
+        )
+        findings["js_rendering"] = (
+            "critical SEO content is visible in initial HTML"
+            if js_rendering_ok
+            else "critical SEO content may depend on JavaScript"
+        )
 
     return {
         "cache_type": "technical",
@@ -167,13 +203,7 @@ def analyze_technical(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, obj
         "url": response.url,
         "url_slug": url_slug(response.url),
         "score": score,
-        "findings": {
-            "indexability": "indexable" if indexability_score >= 80 else "at risk",
-            "canonicals": "self-referential" if parse_data.get("canonical") and parse_data["canonical"].rstrip("/") == response.url.rstrip("/") else "missing or mismatched",
-            "mobile": status_from_score(mobile_score),
-            "cwv": status_from_score(cwv_score),
-            "js_rendering": "critical SEO content is visible in initial HTML" if js_rendering_ok else "critical SEO content may depend on JavaScript",
-        },
+        "findings": findings,
         "issues": list(dict.fromkeys(issues)),
         "recommendations": list(dict.fromkeys(recommendations)),
         "category_scores": category_scores,

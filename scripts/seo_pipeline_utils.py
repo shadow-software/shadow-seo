@@ -256,12 +256,32 @@ def extract_visible_text(html: str) -> str:
     return re.sub(r"\s+", " ", text)
 
 
+def html_parse_unreliable(
+    parse_data: dict[str, Any],
+    status_code: int = 200,
+    content_type: str = "",
+) -> bool:
+    """True when fetch/parse signals are too weak to trust on-page SEO findings."""
+    if status_code != 200:
+        return True
+    lowered_type = (content_type or "").lower()
+    if lowered_type and "text/html" not in lowered_type and "application/xhtml+xml" not in lowered_type:
+        return True
+    title = (parse_data.get("title") or "").strip()
+    word_count = int(parse_data.get("word_count") or 0)
+    if not title and word_count == 0:
+        return True
+    return False
+
+
 def page_type_for(url: str, parse_data: dict[str, Any]) -> str:
     """Infer a page type from URL and schema hints."""
     path = urlparse(url).path.lower().strip("/")
     schema_blob = json.dumps(parse_data.get("schema", []))
     if not path:
         return "homepage"
+    if path == "help" or path.startswith("help/"):
+        return "help_hub"
     if "/blog/" in f"/{path}/" or "Article" in schema_blob or "BlogPosting" in schema_blob:
         return "blog_post"
     if any(token in path for token in ["pricing", "product", "features"]):
@@ -287,7 +307,6 @@ def severity_for_issue(issue: str, score: int | None = None) -> str:
         "ssl",
         "https",
         "invalid",
-        "noindex",
         "timed out",
     ]
     high_tokens = [
@@ -302,6 +321,8 @@ def severity_for_issue(issue: str, score: int | None = None) -> str:
     ]
     if any(token in lowered for token in critical_tokens):
         return "critical"
+    if "noindex" in lowered:
+        return "high"
     if any(token in lowered for token in high_tokens):
         return "high"
     return "medium"
