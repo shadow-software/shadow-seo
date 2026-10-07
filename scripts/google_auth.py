@@ -29,6 +29,7 @@ CONFIG_PATH = os.path.expanduser("~/.config/codex-seo/google-api.json")
 TOKEN_PATH = os.path.expanduser("~/.config/codex-seo/oauth-token.json")
 LEGACY_CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/google-api.json")
 LEGACY_TOKEN_PATH = os.path.expanduser("~/.config/claude-seo/oauth-token.json")
+AGT_CONFIG_PATH = "/home/shadow/Source/000-creds/config/codex-seo/agt-google-api.json"
 
 # Service-to-scope mapping
 SCOPES = {
@@ -92,8 +93,13 @@ def load_config() -> dict:
         "ga4_property_id": None,
     }
 
-    # Load from the Codex config file, with read-only fallback for old Claude SEO installs.
-    config_path = _first_existing_path(CONFIG_PATH, LEGACY_CONFIG_PATH)
+    # Optional override (e.g. AGT audits without touching dabdash ~/.config/codex-seo).
+    override_path = os.environ.get("CODEX_SEO_CONFIG")
+    if override_path and os.path.exists(override_path):
+        config_path = override_path
+    else:
+        # Load from the Codex config file, with read-only fallback for old Claude SEO installs.
+        config_path = _first_existing_path(CONFIG_PATH, LEGACY_CONFIG_PATH)
     if os.path.exists(config_path):
         try:
             with open(config_path, "r") as f:

@@ -170,8 +170,10 @@ def analyze_schema(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
         validation = "errors"
 
     if "FAQPage" in detected_types and business_type not in {"government", "healthcare"}:
-        issues.append("FAQPage is present on a non-government/non-healthcare page and should not be positioned as a Google rich-result tactic.")
-        validation = "warnings" if validation == "valid" else validation
+        recommendations.append(
+            "Google FAQ rich results are limited outside government and healthcare sites. "
+            "Keeping FAQPage schema for AEO and to match visible FAQ content is fine — do not rely on FAQ rich-result eligibility."
+        )
 
     recommended_types = infer_recommended_types(page_type, business_type)
     missing_recommended = [schema_type for schema_type in recommended_types if schema_type not in detected_types]

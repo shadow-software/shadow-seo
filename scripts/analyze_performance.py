@@ -11,7 +11,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 import time
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -21,6 +23,48 @@ from seo_pipeline_utils import DEFAULT_TIMEOUT, build_session, now_iso, url_slug
 
 
 PAGESPEED_ENDPOINT = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
+AGT_PAGESPEED_KEY_FILE = Path("/home/shadow/Source/000-creds/agt-pagespeed-api-key")
+
+
+def resolve_pagespeed_api_key() -> str | None:
+    """Resolve a PageSpeed API key from env, codex-seo config, or shared cred files."""
+    env_key = os.getenv("PAGESPEED_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if env_key and env_key.strip():
+        return env_key.strip()
+
+    key_file = os.getenv("PAGESPEED_API_KEY_FILE")
+    if key_file and key_file.strip():
+        try:
+            path = Path(key_file.strip())
+            if path.is_file():
+                contents = path.read_text(encoding="utf-8").strip()
+                if contents:
+                    return contents
+        except OSError:
+            pass
+
+    try:
+        if AGT_PAGESPEED_KEY_FILE.is_file():
+            contents = AGT_PAGESPEED_KEY_FILE.read_text(encoding="utf-8").strip()
+            if contents:
+                return contents
+    except OSError:
+        pass
+
+    if os.getenv("CODEX_SEO_CONFIG"):
+        scripts_dir = Path(__file__).resolve().parent
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        try:
+            from google_auth import get_api_key
+
+            config_key = get_api_key()
+            if config_key and config_key.strip():
+                return config_key.strip()
+        except ImportError:
+            pass
+
+    return None
 
 
 def normalize_lighthouse_result(payload: dict[str, Any]) -> dict[str, Any]:
@@ -94,7 +138,7 @@ def fetch_pagespeed(url: str, strategy: str) -> dict[str, Any] | None:
         "strategy": strategy,
         "category": ["performance", "accessibility", "best-practices", "seo"],
     }
-    api_key = os.getenv("PAGESPEED_API_KEY")
+    api_key = resolve_pagespeed_api_key()
     if api_key:
         params["key"] = api_key
     try:
@@ -143,7 +187,10 @@ def analyze_performance(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, A
         recommendations.append("Reserve space for images/components and avoid late-injected layout shifts.")
     if data_source == "heuristic":
         issues.append("Real-user/PageSpeed performance data was unavailable, so the report uses deterministic lab heuristics.")
-        recommendations.append("Provide `PAGESPEED_API_KEY` or re-run in an environment with PageSpeed API access for richer CWV evidence.")
+        recommendations.append(
+            "Provide `PAGESPEED_API_KEY`, `GOOGLE_API_KEY`, `PAGESPEED_API_KEY_FILE`, "
+            "or set `CODEX_SEO_CONFIG` to a project-specific google-api.json for richer CWV evidence."
+        )
     if not recommendations:
         recommendations.append("Maintain current asset discipline and keep validating with real-user CWV data over time.")
 

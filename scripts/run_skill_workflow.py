@@ -219,7 +219,11 @@ def run_specialist(skill: str, target: str, output_root: Path | None = None) -> 
         return write_specialist_artifacts(skill, target, result, output_dir, "IMAGES-AUDIT-REPORT.md", report, page_cache / "images.json")
 
     if skill == "seo-sitemap":
-        result = analyze_sitemap(target, timeout=20, check_limit=500)
+        # Template / one-page audits set SHADOW_SEO_SITEMAP_CHECK_LIMIT to a small
+        # bound (e.g. 25) so the upstream sitemap workflow cannot time out on a
+        # second full-site HEAD crawl after ss-seo-audit already inventoried URLs.
+        check_limit = int(os.environ.get("SHADOW_SEO_SITEMAP_CHECK_LIMIT", "500"))
+        result = analyze_sitemap(target, timeout=20, check_limit=max(0, check_limit))
         summary = [
             f"Sitemaps discovered: {len(result.get('sitemap_urls', []))}",
             f"Indexed candidates: {result.get('coverage_summary', {}).get('indexed_candidates', 0)}",

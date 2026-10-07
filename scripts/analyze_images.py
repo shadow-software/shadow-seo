@@ -27,6 +27,14 @@ def extension_for(url: str) -> str:
     return PurePosixPath(urlparse(url).path).suffix.lower()
 
 
+def is_decorative_image(image: dict[str, Any]) -> bool:
+    """Return whether an image is explicitly marked decorative for accessibility."""
+    if image.get("aria_hidden"):
+        return True
+    role = (image.get("role") or "").strip().lower()
+    return role in {"presentation", "none"}
+
+
 def weak_alt_text(value: str | None) -> bool:
     """Return whether an alt value looks non-descriptive."""
     if value is None:
@@ -69,10 +77,11 @@ def analyze_images(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
     for index, image in enumerate(images[:12]):
         image_url = image.get("src") or ""
         suffix = extension_for(image_url)
-        if image.get("alt") is None:
-            missing_alt += 1
-        elif weak_alt_text(image.get("alt")):
-            weak_alt += 1
+        if not is_decorative_image(image):
+            if image.get("alt") is None:
+                missing_alt += 1
+            elif weak_alt_text(image.get("alt")):
+                weak_alt += 1
         if not image.get("width") or not image.get("height"):
             missing_dimensions += 1
         if index > 0 and image.get("loading") != "lazy":

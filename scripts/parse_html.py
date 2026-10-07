@@ -112,12 +112,18 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         if base_url and src:
             src = urljoin(base_url, src)
 
+        aria_hidden_attr = img.get("aria-hidden")
+        aria_hidden = str(aria_hidden_attr).lower() == "true" if aria_hidden_attr is not None else False
+
         result["images"].append({
             "src": src,
             "alt": img.get("alt"),
             "width": img.get("width"),
             "height": img.get("height"),
             "loading": img.get("loading"),
+            "fetchpriority": img.get("fetchpriority"),
+            "role": img.get("role"),
+            "aria_hidden": aria_hidden,
         })
 
     # Links

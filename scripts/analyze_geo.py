@@ -84,9 +84,8 @@ def parse_robots_blocks(robots_text: str) -> dict[str, list[str]]:
         key, value = [part.strip() for part in line.split(":", 1)]
         key_lower = key.lower()
         if key_lower == "user-agent":
-            agent = value
-            current_agents = current_agents + [agent] if current_agents else [agent]
-            blocks.setdefault(agent, [])
+            current_agents = [value]
+            blocks.setdefault(value, [])
         elif key_lower == "disallow":
             for agent in current_agents or ["*"]:
                 blocks.setdefault(agent, []).append(value)
@@ -342,5 +341,40 @@ def main() -> None:
             print(f"- {issue}")
 
 
+def _self_test_parse_robots_blocks() -> None:
+    """Verify each User-agent line starts a fresh group (AGT-style training vs search split)."""
+    snippet = """
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: GPTBot
+Disallow: /
+""".strip()
+    blocks = parse_robots_blocks(snippet)
+    assert blocks.get("GPTBot") == ["/"]
+    assert "/" not in blocks.get("OAI-SearchBot", [])
+    assert "/" not in blocks.get("ChatGPT-User", [])
+    assert "/" not in blocks.get("PerplexityBot", [])
+
+    access = crawler_access(snippet)
+    assert access["status"] == "partial"
+    assert "OAI-SearchBot" in access["allowed_search_crawlers"]
+    assert "ChatGPT-User" in access["allowed_search_crawlers"]
+    assert "PerplexityBot" in access["allowed_search_crawlers"]
+    assert "GPTBot" in access["blocked_search_crawlers"]
+
+
 if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--self-test":
+        _self_test_parse_robots_blocks()
+        print("parse_robots_blocks self-test passed")
+        sys.exit(0)
     main()
