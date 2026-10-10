@@ -1,0 +1,25 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Dockside Pre-Roll Pack",
+  "image": ["https://cdn.example.com/products/dockside-preroll.jpg"],
+  "brand": {
+    "@type": "Brand",
+    "name": "Harbor Labs"
+  },
+  "sku": "DP-PACK-6",
+  "offers": {
+    "@type": "Offer",
+    "price": "29.00",
+    "priceCurrency": "CAD",
+    "availability": "https://schema.org/InStock",
+    "validFrom": "2026-01-01",
+    "priceValidUntil": "2026-12-31",
+    "hasMerchantReturnPolicy": {
+      "@type": "MerchantReturnPolicy",
+      "applicableCountry": "CA",
+      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+      "merchantReturnDays": 14
+    }
+  }
+}

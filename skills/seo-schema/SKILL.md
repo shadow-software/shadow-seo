@@ -40,7 +40,12 @@ Check these cache files when present:
 ## Validation
 
 - Check required properties per schema type
-- Validate against Google's supported rich result types
+- Validate against Google's supported rich result types using **local** rules
+- For Product / Offer / Merchant / nested Review pages, run:
+  `python scripts/validate_product_schema.py <url-or-jsonld-or-html> --json`
+  (also folded into `python scripts/analyze_schema.py <url> --json` via `product_schema`)
+- Do **not** claim a Google Rich Results Test API exists for raw JSON-LD or staging —
+  there is no public RRT API; optional live spot-checks use GSC URL Inspection only
 - Test for common errors:
   - Missing @context
   - Invalid @type
@@ -48,6 +53,7 @@ Check these cache files when present:
   - Placeholder text
   - Relative URLs (should be absolute)
   - Invalid date formats
+  - Nested `itemReviewed` under Product/SoftwareApplication (GSC directional conflict)
 - Flag deprecated types (see below)
 
 ## Schema Type Status (as of Feb 2026)

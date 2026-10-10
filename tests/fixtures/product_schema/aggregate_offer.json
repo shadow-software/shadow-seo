@@ -1,0 +1,35 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Harbor Variety Pack",
+  "image": ["https://cdn.example.com/products/variety-pack.jpg"],
+  "gtin13": "00012345678905",
+  "brand": {
+    "@type": "Brand",
+    "name": "Harbor Labs"
+  },
+  "offers": {
+    "@type": "AggregateOffer",
+    "lowPrice": "19.99",
+    "highPrice": "59.99",
+    "priceCurrency": "CAD",
+    "availability": "https://schema.org/InStock",
+    "offerCount": "3",
+    "validFrom": "2026-01-01",
+    "priceValidUntil": "2026-12-31",
+    "shippingDetails": {
+      "@type": "OfferShippingDetails",
+      "shippingRate": {
+        "@type": "MonetaryAmount",
+        "value": "5.00",
+        "currency": "CAD"
+      }
+    },
+    "hasMerchantReturnPolicy": {
+      "@type": "MerchantReturnPolicy",
+      "applicableCountry": "CA",
+      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+      "merchantReturnDays": 30
+    }
+  }
+}

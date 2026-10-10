@@ -39,6 +39,12 @@ from seo_pipeline_utils import (
     validate_public_url,
     write_json,
 )
+from validate_product_schema import (
+    DEFAULT_SAMPLE_LIMIT,
+    audit_sampled_product_schemas,
+    format_finding,
+    is_product_url,
+)
 from verify_environment import verify_environment
 
 
@@ -648,6 +654,46 @@ def run_audit_with_output_root(
         penalty = min(len(long_titles) * 2 + len(long_meta) + len(missing_titles) * 3 + len(missing_meta) * 2, 20)
         on_page_score = max(on_page_score - penalty, 0)
 
+    # Sample product URLs for Product/Merchant schema contract (fail closed on errors).
+    candidate_urls = list(sitemap.get("page_urls") or [])
+    for link in parse_data.get("links", {}).get("internal", []):
+        href = link.get("href")
+        if href:
+            candidate_urls.append(href)
+    should_sample_products = (
+        business_type == "ecommerce"
+        or any(is_product_url(url) for url in candidate_urls)
+        or bool({"Product", "ProductGroup"} & set(schema.get("detected_types") or []))
+    )
+    product_schema_sample: dict[str, Any] = {
+        "sampled_urls": [],
+        "sample_count": 0,
+        "pages": [],
+        "findings": [],
+        "error_count": 0,
+        "ok": True,
+        "failed_closed": False,
+        "skipped": not should_sample_products,
+    }
+    if should_sample_products:
+        product_schema_sample = audit_sampled_product_schemas(
+            candidate_urls,
+            timeout=timeout,
+            limit=DEFAULT_SAMPLE_LIMIT,
+            base_url=response.url,
+        )
+        product_schema_sample["skipped"] = False
+        for finding in product_schema_sample.get("findings", []):
+            schema.setdefault("issues", []).append(format_finding(finding))
+        if product_schema_sample.get("error_count"):
+            schema["validation"] = "errors"
+            schema["score"] = max(int(schema.get("score") or 0) - min(int(product_schema_sample["error_count"]) * 12, 36), 0)
+            schema.setdefault("recommendations", []).append(
+                "Sampled product URL(s) failed Product/Merchant schema validation (fail-closed). "
+                "Run `python scripts/validate_product_schema.py <product-url> --json`."
+            )
+        schema["product_schema_sample"] = product_schema_sample
+
     on_page = {
         "score": on_page_score,
         "issues": on_page_issues,
@@ -730,6 +776,8 @@ def run_audit_with_output_root(
     write_json(output_dir / "SUMMARY.json", audit_scores)
     write_json(output_dir / "homepage-parse.json", {**parse_data, "canonical": parse_data.get("canonical") or response.url})
     write_json(output_dir / "crawl-all.json", {"pages": crawl_rows})
+    write_json(output_dir / "product-schema-sample.json", product_schema_sample)
+    write_json(ROOT / ".seo-cache" / "product-schema-sample.json", product_schema_sample)
     write_json(output_dir / "lighthouse.json", performance["lighthouse"])
     write_json(output_dir / "visual-analysis.json", visual.get("rendered", visual))
     write_json(output_dir / "environment-verification.json", verification)

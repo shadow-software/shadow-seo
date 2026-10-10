@@ -38,6 +38,13 @@ from seo_pipeline_utils import (
     validate_public_url,
     write_json,
 )
+from validate_product_schema import (
+    DEFAULT_SAMPLE_LIMIT,
+    audit_sampled_product_schemas,
+    format_finding,
+    is_product_url,
+    validate_product_schema,
+)
 from verify_environment import verify_environment
 
 
@@ -375,12 +382,98 @@ def run_specialist(skill: str, target: str, output_root: Path | None = None) -> 
             output_root,
         )
 
-    if skill in {"seo-local", "seo-cluster", "seo-sxo", "seo-ecommerce", "seo-flow"}:
+    if skill == "seo-ecommerce":
+        schema = analyze_schema(target)
+        session = build_session()
+        response = session.get(target, timeout=20, allow_redirects=True)
+        parse_data = parse_html(response.text, response.url)
+        candidate_urls = [response.url]
+        for link in parse_data.get("links", {}).get("internal", []):
+            href = link.get("href")
+            if href:
+                candidate_urls.append(href)
+        try:
+            sitemap = analyze_sitemap(response.url, timeout=20, check_limit=50)
+            candidate_urls.extend(sitemap.get("page_urls") or [])
+        except Exception:  # noqa: BLE001
+            sitemap = {}
+
+        if is_product_url(response.url) or {"Product", "ProductGroup"} & set(schema.get("detected_types") or []):
+            product_schema = schema.get("product_schema") or validate_product_schema(parse_data.get("schema", []))
+            sample = {
+                "sampled_urls": [response.url],
+                "sample_count": 1,
+                "pages": [{"url": response.url, "ok": product_schema.get("ok", True), "findings": product_schema.get("findings", [])}],
+                "findings": product_schema.get("findings", []),
+                "error_count": product_schema.get("error_count", 0),
+                "ok": product_schema.get("ok", True),
+                "failed_closed": bool(product_schema.get("error_count")),
+            }
+        else:
+            sample = audit_sampled_product_schemas(
+                candidate_urls,
+                timeout=20,
+                limit=DEFAULT_SAMPLE_LIMIT,
+                base_url=response.url,
+            )
+
+        issues = list(schema.get("issues") or [])
+        for finding in sample.get("findings", []):
+            formatted = format_finding(finding)
+            if formatted not in issues:
+                issues.append(formatted)
+        recommendations = list(schema.get("recommendations") or [])
+        recommendations.append(
+            "Marketplace intelligence (Google Shopping / Amazon) still requires DataForSEO Merchant credentials."
+        )
+        if sample.get("error_count"):
+            recommendations.insert(
+                0,
+                "Fail-closed: sampled product schema has error-severity findings. "
+                "Fix with local `validate_product_schema.py` (no Rich Results Test API).",
+            )
+        score = max(int(schema.get("score") or 0) - min(int(sample.get("error_count") or 0) * 8, 24), 0)
+        result = {
+            "cache_type": "ecommerce",
+            "analyzed_at": now_iso(),
+            "url": response.url,
+            "domain": domain_slug(response.url),
+            "score": score,
+            "status": "failed" if sample.get("error_count") else "ok",
+            "schema_validation": schema.get("validation"),
+            "product_schema": schema.get("product_schema"),
+            "product_schema_sample": sample,
+            "issues": issues,
+            "recommendations": recommendations,
+            "limitations": [
+                "Static Product/Merchant contract only; DataForSEO Merchant not called by this wrapper.",
+                "There is no public Google Rich Results Test API for raw JSON-LD — local ruleset is the gate.",
+            ],
+        }
+        summary = [
+            f"Schema validation: {schema.get('validation')}",
+            f"Product sample: {sample.get('sample_count', 0)} URL(s), errors={sample.get('error_count', 0)}",
+            f"Detected types: {', '.join(schema.get('detected_types') or []) or 'None'}",
+        ]
+        report = simple_report("E-commerce SEO Report", score, summary, issues, recommendations)
+        bundle = write_specialist_artifacts(
+            skill,
+            target,
+            result,
+            output_dir,
+            "ECOMMERCE-SUMMARY.md",
+            report,
+            root_cache / "ecommerce.json",
+        )
+        write_json(output_dir / "product-schema-sample.json", sample)
+        bundle["artifacts"]["product_schema_sample"] = str(output_dir / "product-schema-sample.json")
+        return bundle
+
+    if skill in {"seo-local", "seo-cluster", "seo-sxo", "seo-flow"}:
         labels = {
             "seo-local": "Local SEO analysis is available through the Codex skill workflow; live GBP/map data requires optional integrations.",
             "seo-cluster": "Semantic clustering requires live SERP evidence from WebSearch or DataForSEO; this wrapper records the requested plan context.",
             "seo-sxo": "SXO analysis requires SERP intent review plus page parsing; this wrapper records the requested analysis context.",
-            "seo-ecommerce": "E-commerce SEO can analyze product pages statically; marketplace intelligence requires DataForSEO Merchant data.",
             "seo-flow": "FLOW prompt application is instruction-led; use the skill directly for stage-specific prompt execution.",
         }
         return run_capability_summary(

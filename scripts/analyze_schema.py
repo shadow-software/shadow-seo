@@ -26,6 +26,7 @@ from seo_pipeline_utils import (
     url_slug,
     validate_public_url,
 )
+from validate_product_schema import format_finding, validate_product_schema
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -204,6 +205,31 @@ def analyze_schema(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
         issues.append("Schema recommendations are less trustworthy because the page lacks a canonical URL.")
         recommendations.append("Add a self-referencing canonical before expanding structured-data coverage.")
 
+    product_schema: dict[str, Any] = {
+        "ok": True,
+        "product_nodes": 0,
+        "findings": [],
+        "error_count": 0,
+        "warning_count": 0,
+        "codes": [],
+    }
+    product_types_present = bool({"Product", "ProductGroup", "SoftwareApplication"} & set(detected_types))
+    if not parse_unreliable and product_types_present:
+        product_schema = validate_product_schema(parse_data.get("schema", []))
+        for finding in product_schema.get("findings", []):
+            issues.append(format_finding(finding))
+        if product_schema.get("error_count"):
+            validation = "errors"
+            recommendations.append(
+                "Fix Product/Merchant schema errors with `python scripts/validate_product_schema.py <url> --json` "
+                "(local contract — there is no public Rich Results Test API for raw JSON-LD)."
+            )
+        elif product_schema.get("warning_count") and validation == "valid":
+            validation = "warnings"
+            recommendations.append(
+                "Strengthen Product/Merchant fields (shippingDetails, return policy, brand/gtin) for Merchant listings."
+            )
+
     if not recommendations:
         recommendations.append("Existing schema coverage is in reasonable shape. Focus on keeping values factual and server-rendered.")
 
@@ -216,6 +242,8 @@ def analyze_schema(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
         score -= min(len(missing_recommended) * 8, 24)
     score -= invalid_jsonld * 20
     score -= len(deprecated_hits) * 10
+    score -= min(int(product_schema.get("error_count") or 0) * 12, 36)
+    score -= min(int(product_schema.get("warning_count") or 0) * 3, 12)
     score = max(score, 0)
 
     return {
@@ -236,6 +264,7 @@ def analyze_schema(url: str, timeout: int = DEFAULT_TIMEOUT) -> dict[str, Any]:
         },
         "recommended_types": recommended_types,
         "generated_schema": basic_generated_schema(response.url, page_type, parse_data, business_type),
+        "product_schema": product_schema,
     }
 
 
@@ -258,6 +287,13 @@ def main() -> None:
     print(f"Score: {result['score']}/100")
     print(f"Validation: {result['validation']}")
     print(f"Detected types: {', '.join(result['detected_types']) or 'None'}")
+    product_schema = result.get("product_schema") or {}
+    if product_schema.get("product_nodes"):
+        print(
+            f"Product schema: nodes={product_schema.get('product_nodes')} "
+            f"errors={product_schema.get('error_count')} "
+            f"warnings={product_schema.get('warning_count')}"
+        )
     if result["issues"]:
         print("\nIssues:")
         for issue in result["issues"]:

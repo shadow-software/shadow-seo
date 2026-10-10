@@ -1,0 +1,39 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Maritime Fog Cartridge 1g",
+  "image": ["https://cdn.example.com/products/maritime-fog.jpg"],
+  "description": "Anonymized product description for schema fixtures.",
+  "sku": "MF-1G-001",
+  "brand": {
+    "@type": "Brand",
+    "name": "Harbor Labs"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "https://shop.example.com/products/maritime-fog-cartridge",
+    "priceCurrency": "CAD",
+    "price": "39.99",
+    "availability": "https://schema.org/InStock",
+    "validFrom": "2026-01-01",
+    "priceValidUntil": "2026-12-31",
+    "shippingDetails": {
+      "@type": "OfferShippingDetails",
+      "shippingRate": {
+        "@type": "MonetaryAmount",
+        "value": "0",
+        "currency": "CAD"
+      },
+      "shippingDestination": {
+        "@type": "DefinedRegion",
+        "addressCountry": "CA"
+      }
+    },
+    "hasMerchantReturnPolicy": {
+      "@type": "MerchantReturnPolicy",
+      "applicableCountry": "CA",
+      "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+      "merchantReturnDays": 30
+    }
+  }
+}

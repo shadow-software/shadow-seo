@@ -1,0 +1,10 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Untitled Strain",
+  "image": "https://cdn.example.com/products/untitled.jpg",
+  "brand": {
+    "@type": "Brand",
+    "name": "Harbor Labs"
+  }
+}

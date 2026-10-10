@@ -114,5 +114,8 @@ For any schema block, verify:
 
 ## Testing Tools
 
-- [Google Rich Results Test](https://search.google.com/test/rich-results)
-- [Schema.org Validator](https://validator.schema.org/)
+- **Local Product/Merchant gate (preferred in CI):** `python scripts/validate_product_schema.py <input> --json`
+  — deterministic ruleset; no network required for JSON-LD/HTML files
+- [Google Rich Results Test](https://search.google.com/test/rich-results) — human UI only; **no public API** for raw JSON-LD/staging
+- Optional live spot-check: GSC URL Inspection (`scripts/gsc_inspect.py`) on indexed URLs only
+- [Schema.org Validator](https://validator.schema.org/) — human-oriented; not a build dependency

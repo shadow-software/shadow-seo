@@ -108,6 +108,18 @@ crawler uses the staging hostname from `estate.json`.
 SiteOne/xseo/crawlie cover crawl/indexation/on-page/GEO. Run Lighthouse separately
 for Core Web Vitals when performance is in scope (`npm run lh:baseline` on PWAs).
 
+## Pair with Product schema contract (shadow-seo)
+
+Triple-audit crawlers do not enforce Google Product/Merchant nesting rules.
+After (or alongside) `ss-seo-audit`, run the local gate on storefronts:
+
+```bash
+python ~/Source/shadow-seo/scripts/validate_product_schema.py <product-url> --json
+python ~/Source/shadow-seo/scripts/run_headless_audit.py <store-url> --json   # samples product URLs; fail-closed on errors
+```
+
+There is no public Rich Results Test API for raw JSON-LD — do not scrape the RRT UI.
+
 ## Do not use
 
 - Screaming Frog (licence required; removed from estate tooling)

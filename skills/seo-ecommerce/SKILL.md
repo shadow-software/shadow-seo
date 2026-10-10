@@ -279,6 +279,12 @@ Validate and generate Product schema following Google's current requirements.
 
 ### Validation Rules
 
+Run the estate contract validator (local, no Rich Results Test API):
+
+```bash
+python scripts/validate_product_schema.py <product-url-or-jsonld> --json
+```
+
 1. `price` must be a number string, not "$29.99" (no currency symbol)
 2. `availability` must use full Schema.org URL enum
 3. `image` should be array with >= 1 high-res image URL
@@ -286,6 +292,7 @@ Validate and generate Product schema following Google's current requirements.
 5. `brand.name` must not be empty or "N/A"
 6. Dates in `priceValidUntil` must be ISO 8601
 7. If `aggregateRating` present: `ratingValue` and `reviewCount` required
+8. Reviews nested under Product/SoftwareApplication must **omit** `itemReviewed`
 
 ### Schema Scoring
 

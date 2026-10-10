@@ -11,6 +11,7 @@ Codex SEO works best from natural-language prompts, but command-style prompts ar
 | `/seo technical <url>` | Crawlability, indexability, CWV, JavaScript, security |
 | `/seo content <url>` | E-E-A-T, helpfulness, readability, AI citation readiness |
 | `/seo schema <url>` | Structured data detection, validation, generation |
+| `python scripts/validate_product_schema.py <url-or-file-or-jsonld> --json` | Local Product/Merchant/Review contract (no RRT API) |
 | `/seo images <url>` | Alt text, image weight, metadata, SERP image opportunities |
 | `/seo sitemap <url>` | XML sitemap discovery, coverage, generation guidance |
 | `/seo geo <url>` | AI search/GEO readiness, crawler access, citability |

@@ -1,0 +1,36 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Coastal Blend Flower 3.5g",
+  "image": "https://cdn.example.com/products/coastal-blend.jpg",
+  "sku": "CB-35-001",
+  "brand": {
+    "@type": "Brand",
+    "name": "Harbor Labs"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "45.00",
+    "priceCurrency": "CAD",
+    "availability": "https://schema.org/InStock"
+  },
+  "review": [
+    {
+      "@type": "Review",
+      "itemReviewed": {
+        "@id": "https://shop.example.com/products/coastal-blend#product"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Verified buyer"
+      },
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "5",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "reviewBody": "Smooth and consistent."
+    }
+  ]
+}
