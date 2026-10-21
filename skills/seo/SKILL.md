@@ -57,7 +57,7 @@ Check these cache files when present:
 | `/seo local <url>` | Local SEO analysis (GBP, citations, reviews, map pack) |
 | `/seo maps [command] [args]` | Maps intelligence (geo-grid, GBP audit, reviews, competitors) |
 | `/seo hreflang [url]` | Hreflang/i18n SEO audit and generation |
-| `/seo google [command] [url]` | Google SEO APIs (GSC, PageSpeed, CrUX, Indexing, GA4) |
+| `/seo google [command] [url]` | Google SEO APIs (GSC, PageSpeed, CrUX, Indexing) |
 | `/seo backlinks <url>` | Backlink profile analysis (free: Moz, Bing, CC; premium: DataForSEO) |
 | `/seo cluster <seed-keyword>` | SERP-based semantic clustering and content architecture |
 | `/seo sxo <url>` | Search Experience Optimization: page-type analysis, user stories, personas |
@@ -212,7 +212,7 @@ This skill orchestrates 26 specialized sub-skills, including optional extension-
 14. **seo-hreflang** -- Hreflang/i18n SEO audit, cultural profiles, content parity
 15. **seo-local** -- Local SEO (GBP, NAP, citations, reviews, local schema, multi-location)
 16. **seo-maps** -- Maps intelligence (geo-grid, GBP audit, reviews, competitor radius)
-17. **seo-google** -- Google SEO APIs (GSC, PageSpeed, CrUX, Indexing API, GA4)
+17. **seo-google** -- Google SEO APIs (GSC, PageSpeed, CrUX, Indexing API)
 18. **seo-backlinks** -- Backlink profile analysis (free: Moz, Bing, CC; premium: DataForSEO)
 19. **seo-cluster** -- SERP-based semantic clustering
 20. **seo-sxo** -- Search Experience Optimization

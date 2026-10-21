@@ -69,3 +69,6 @@ screenshots/*
 .paperclip-*
 .tmp-*/
 .codex-exec-last.txt
+
+# Local backup of a tracked hooks file (kept while editing hooks.json)
+hooks/*.enabled-backup

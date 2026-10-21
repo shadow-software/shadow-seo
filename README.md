@@ -168,7 +168,7 @@ flowchart LR
 | `/seo hreflang <url>` | International SEO, locale validation, content parity |
 | `/seo local <url>` | Local SEO, GBP signals, NAP, citations, reviews |
 | `/seo maps <command>` | Geo-grid, GBP audit, review intelligence, local maps signals |
-| `/seo google <command>` | GSC, PageSpeed, CrUX, Indexing API, GA4 workflows |
+| `/seo google <command>` | GSC, PageSpeed, CrUX, Indexing API workflows |
 | `/seo backlinks <url>` | Backlink profile summary and source-tier detection |
 | `/seo cluster <keyword>` | SERP-based topic clustering and hub-spoke planning |
 | `/seo sxo <url>` | Search Experience Optimization, intent/page-type fit |
@@ -289,7 +289,7 @@ sequenceDiagram
 | Extension | Skill | Setup | Notes |
 |---|---|---|---|
 | DataForSEO | `seo-dataforseo`, `seo-maps`, `seo-ecommerce`, `seo-cluster` | `./extensions/dataforseo/install.sh` | Live SERP, keyword, backlinks, on-page, content, business data, AI visibility |
-| Google APIs | `seo-google`, `seo-performance` | `python scripts/google_auth.py --setup` | PageSpeed, CrUX, GSC, URL Inspection, Indexing API, GA4 |
+| Google APIs | `seo-google`, `seo-performance` | `python scripts/google_auth.py --setup` | PageSpeed, CrUX, GSC, URL Inspection, Indexing API |
 | Firecrawl | `seo-firecrawl` | `./extensions/firecrawl/install.sh` | JS-rendered crawl, scrape, site map |
 | Banana / Gemini | `seo-image-gen` | `./extensions/banana/install.sh` | AI image generation through `nanobanana-mcp` |
 
@@ -300,7 +300,7 @@ Optional integrations enrich the same workflow surface. If credentials or MCP se
 flowchart LR
   codex["Codex SEO workflows"] --> local["Local evidence<br/>HTML, robots, sitemaps, screenshots"]
   codex --> dfs["DataForSEO MCP<br/>SERP, keywords, backlinks, maps"]
-  codex --> google["Google APIs<br/>GSC, PageSpeed, CrUX, GA4"]
+  codex --> google["Google APIs<br/>GSC, PageSpeed, CrUX"]
   codex --> firecrawl["Firecrawl MCP<br/>JS crawl and site maps"]
   codex --> banana["Gemini / nanobanana<br/>SEO image assets"]
   local --> artifacts["Reports and .seo-cache"]
@@ -475,7 +475,7 @@ Current GitHub CI runs:
 - Git
 - Optional: Playwright Chromium for screenshots and PDF reports
 - Optional: DataForSEO account for live SEO data
-- Optional: Google API credentials for PageSpeed/CrUX/GSC/GA4
+- Optional: Google API credentials for PageSpeed/CrUX/GSC
 - Optional: Firecrawl API key for JS-rendered crawling
 - Optional: Google AI API key for Gemini/nanobanana image generation
 

@@ -32,7 +32,6 @@ DEFAULT_USER_AGENT = (
 DEPENDENCIES = [
     ("bs4", "beautifulsoup4"),
     ("defusedxml", "defusedxml"),
-    ("google.analytics.data", "google-analytics-data"),
     ("google.auth", "google-auth"),
     ("google_auth_httplib2", "google-auth-httplib2"),
     ("google_auth_oauthlib", "google-auth-oauthlib"),
@@ -64,7 +63,6 @@ GOOGLE_API_PACKAGES = {
     "google-auth",
     "google-auth-httplib2",
     "google-auth-oauthlib",
-    "google-analytics-data",
 }
 OPTIONAL_PACKAGES = {"rapidocr-onnxruntime"}
 

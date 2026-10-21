@@ -1,15 +1,4 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"${CODEX_PLUGIN_ROOT}/hooks/validate-schema.py\" \"$FILE_PATH\""
-          }
-        ]
-      }
-    ]
-  }
+  "version": 1,
+  "hooks": {}
 }

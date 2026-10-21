@@ -11,7 +11,6 @@
 | CrUX API | 150 QPM (shared) | Unlimited | Free | API Key | Per project |
 | CrUX History API | 150 QPM (shared with CrUX) | Unlimited | Free | API Key | Per project |
 | Indexing API | 380 RPM total, 180 read/min | 200 publish/day | Free | Service Account | Per project |
-| GA4 Data API | 10 concurrent | ~25K tokens/day | Free | Service Account | Per property/project |
 | Knowledge Graph | -- | 100,000 QPD | Free | API Key | Per project |
 | Custom Search | -- | 10,000 QPD max | 100 free, $5/1K | API Key | Per project |
 | Web Risk | 6,000 QPM | 100K/month | Free tier | API Key | Per project |
@@ -39,7 +38,7 @@ Add random jitter (0-500ms) to each wait to avoid thundering herd.
 |------|---------|------------|--------|
 | 400 | Bad request | All | Check URL format, request body |
 | 401 | Unauthorized | Service Account APIs | Refresh credentials |
-| 403 | Forbidden | GSC, GA4, Indexing | Check permissions (service account access) |
+| 403 | Forbidden | GSC, Indexing | Check permissions (service account access) |
 | 404 | Not found | CrUX, GSC | Insufficient traffic (CrUX) or invalid property (GSC) |
 | 429 | Rate limited | All | Backoff and retry. Check Retry-After header. |
 | 500 | Server error | All | Retry with backoff |
@@ -48,16 +47,6 @@ Add random jitter (0-500ms) to each wait to avoid thundering herd.
 ## Retry-After Header
 
 Some Google APIs return a `Retry-After` header with 429 responses. When present, use this value (in seconds) instead of exponential backoff.
-
-## GA4 Token Budgeting
-
-GA4 uses a token system rather than simple request counts:
-- Simple 1-dimension, 1-metric report: ~1-5 tokens
-- Complex multi-dimension, multi-metric: ~10-100 tokens
-- Set `returnPropertyQuota: true` to monitor consumption
-- Daily limit: 25,000 tokens per property per project
-- Hourly limit: 5,000 tokens per property per project
-- Concurrent: max 10 simultaneous requests
 
 ## CrUX Shared Quota
 
@@ -69,7 +58,6 @@ The CrUX API and CrUX History API share the same 150 QPM quota per project. Plan
 - PSI, CrUX, CrUX History (API key, unlimited free)
 - GSC (service account, 30M QPD)
 - Indexing API (service account, 200 publish/day)
-- GA4 Data API (service account, 25K tokens/day)
 - Knowledge Graph (API key, 100K QPD)
 
 Only Custom Search and Web Risk have paid tiers at high volumes.

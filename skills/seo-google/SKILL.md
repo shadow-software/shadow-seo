@@ -2,11 +2,11 @@
 name: seo-google
 description: >
   Google SEO APIs: Search Console (Search Analytics, URL Inspection, Sitemaps),
-  PageSpeed Insights v5, CrUX field data with 25-week history, Indexing API v3,
-  and GA4 organic traffic. Provides real Google field data for Core Web Vitals,
-  indexation status, search performance, and organic traffic trends. Use when
+  PageSpeed Insights v5, CrUX field data with 25-week history, and Indexing API v3.
+  Provides real Google field data for Core Web Vitals, indexation status, and
+  search performance. Use when
   user says "search console", "GSC", "PageSpeed", "CrUX", "field data",
-  "indexing API", "GA4 organic", "URL inspection", "google api setup",
+  "indexing API", "URL inspection", "google api setup",
   "real CWV data", "impressions", "clicks", "CTR", "position data",
   "LCP", "INP", "CLS", "FCP", "TTFB", or "Lighthouse scores".
 user-invokable: true
@@ -37,7 +37,7 @@ Check these cache files when present:
 
 Direct access to Google's own SEO data. Bridges the gap between crawl-based
 analysis (existing codex-seo skills) and Google's real-time field data: actual
-Chrome user metrics, real indexation status, search performance, and organic traffic.
+Chrome user metrics, real indexation status, and search performance.
 
 All APIs are free. Setup requires a Google Cloud project with API key and/or
 service account -- run `/seo google setup` for step-by-step instructions.
@@ -54,8 +54,7 @@ Config file: `~/.config/codex-seo/google-api.json`
 {
   "service_account_path": "/path/to/service_account.json",
   "api_key": "AIzaSy...",
-  "default_property": "sc-domain:example.com",
-  "ga4_property_id": "properties/123456789"
+  "default_property": "sc-domain:example.com"
 }
 ```
 
@@ -67,8 +66,7 @@ If missing, read `references/auth-setup.md` and walk the user through setup.
 |------|-----------|-------------------|
 | **0** (API Key) | `api_key` present | `pagespeed`, `crux`, `crux-history`, `youtube`, `nlp` |
 | **1** (OAuth/SA) | + OAuth token or service account | Tier 0 + `gsc`, `inspect`, `sitemaps`, `index` |
-| **2** (Full) | + `ga4_property_id` configured | Tier 1 + `ga4`, `ga4-pages` |
-| **3** (Ads) | + `ads_developer_token` + `ads_customer_id` | Tier 2 + `keywords`, `volume` |
+| **3** (Ads) | + `ads_developer_token` + `ads_customer_id` | `keywords`, `volume` |
 
 Always communicate the detected tier before running commands.
 
@@ -86,8 +84,6 @@ Always communicate the detected tier before running commands.
 | `/seo google sitemaps <property>` | GSC sitemap status | 1 |
 | `/seo google index <url>` | Submit URL to Indexing API | 1 |
 | `/seo google index-batch <file>` | Batch submit up to 200 URLs | 1 |
-| `/seo google ga4 [property-id]` | GA4 organic traffic report | 2 |
-| `/seo google ga4-pages [property-id]` | Top organic landing pages | 2 |
 | `/seo google youtube <query>` | YouTube video search (views, likes, duration) | 0 |
 | `/seo google youtube-video <id>` | YouTube video details + top comments | 0 |
 | `/seo google nlp <url-or-text>` | NLP entity extraction + sentiment + classification | 0 |
@@ -182,24 +178,6 @@ Always inform the user of this restriction. Daily quota: 200 publish requests.
 Batch submit URLs from a file. Tracks quota usage.
 
 **Script:** `python scripts/indexing_notify.py --batch <file> --json`
-
----
-
-## GA4 Traffic
-
-### `/seo google ga4 [property-id]`
-
-Organic traffic report: daily sessions, users, pageviews, bounce rate, engagement.
-
-**Script:** `python scripts/ga4_report.py --property <id> --json`
-**Reference:** `references/ga4-data-api.md`
-**Default:** 28 days, filtered to Organic Search channel group.
-
-### `/seo google ga4-pages [property-id]`
-
-Top organic landing pages ranked by sessions.
-
-**Script:** `python scripts/ga4_report.py --property <id> --report top-pages --json`
 
 ---
 
@@ -320,7 +298,6 @@ Generate a professional PDF report with charts and analytics.
 | GSC Search Analytics | 1,200 QPM/site | 30M QPD | Service Account |
 | GSC URL Inspection | 600 QPM | 2,000 QPD/site | Service Account |
 | Indexing API | 380 RPM | 200 publish/day | Service Account |
-| GA4 Data API | 10 concurrent | ~25K tokens/day | Service Account |
 
 ## Cross-Skill Integration
 
@@ -355,7 +332,6 @@ Generate a professional PDF report with charts and analytics.
 | No credentials configured | Run `/seo google setup`. List Tier 0 commands that work with just an API key. |
 | Service account lacks GSC access | Report error. Instruct: add `client_email` to GSC > Settings > Users > Add. |
 | CrUX data unavailable (404) | Report insufficient Chrome traffic. Suggest PSI lab data as fallback. |
-| GA4 property not found | Report error. Show how to find property ID in GA4 Admin > Property Details. |
 | Indexing API quota exceeded | Report 200/day limit. Suggest prioritizing most important URLs. |
 | Rate limit (429) | Wait and retry with exponential backoff. Report which API hit the limit. |
 

@@ -3,7 +3,7 @@
 Google API credential management for Codex SEO.
 
 Loads and validates credentials for Google Search Console, PageSpeed Insights,
-CrUX, Indexing API, and GA4. Supports service accounts, OAuth web credentials
+CrUX, and the Indexing API. Supports service accounts, OAuth web credentials
 with token refresh, API keys, and environment variable fallbacks.
 
 Usage:
@@ -36,7 +36,6 @@ SCOPES = {
     "gsc_readonly": "https://www.googleapis.com/auth/webmasters.readonly",
     "gsc_write": "https://www.googleapis.com/auth/webmasters",
     "indexing": "https://www.googleapis.com/auth/indexing",
-    "ga4": "https://www.googleapis.com/auth/analytics.readonly",
 }
 
 # Which services need which auth type
@@ -46,13 +45,11 @@ SERVICE_AUTH = {
     "crux_history": "api_key",
     "gsc": "oauth_or_sa",
     "indexing": "oauth_or_sa",
-    "ga4": "oauth_or_sa",
 }
 
 OAUTH_SCOPES = (
     "https://www.googleapis.com/auth/indexing "
-    "https://www.googleapis.com/auth/webmasters "
-    "https://www.googleapis.com/auth/analytics.readonly"
+    "https://www.googleapis.com/auth/webmasters"
 )
 OAUTH_REDIRECT_URI = "http://localhost:8085"
 
@@ -63,7 +60,6 @@ SERVICE_NAMES = {
     "crux_history": "CrUX History API",
     "gsc": "Google Search Console API",
     "indexing": "Google Indexing API v3",
-    "ga4": "GA4 Data API v1beta",
 }
 
 
@@ -84,13 +80,12 @@ def load_config() -> dict:
 
     Returns:
         Dictionary with keys: service_account_path, api_key,
-        default_property, ga4_property_id. Missing values are None.
+        default_property. Missing values are None.
     """
     config = {
         "service_account_path": None,
         "api_key": None,
         "default_property": None,
-        "ga4_property_id": None,
     }
 
     # Optional override (e.g. AGT audits without touching dabdash ~/.config/codex-seo).
@@ -114,9 +109,6 @@ def load_config() -> dict:
 
     if not config["api_key"]:
         config["api_key"] = os.environ.get("GOOGLE_API_KEY")
-
-    if not config["ga4_property_id"]:
-        config["ga4_property_id"] = os.environ.get("GA4_PROPERTY_ID")
 
     if not config["default_property"]:
         config["default_property"] = os.environ.get("GSC_PROPERTY")
@@ -496,7 +488,7 @@ def check_credentials(service: str) -> dict:
     Validate credentials for a specific Google API service.
 
     Args:
-        service: One of 'psi', 'crux', 'crux_history', 'gsc', 'indexing', 'ga4'.
+        service: One of 'psi', 'crux', 'crux_history', 'gsc', 'indexing'.
 
     Returns:
         Dictionary with:
@@ -561,16 +553,6 @@ def check_credentials(service: str) -> dict:
                             result["client_email"] = sa_data.get("client_email")
                     except (json.JSONDecodeError, IOError) as e:
                         result["error"] = f"Invalid service account file: {e}"
-
-        # GA4 also needs property ID
-        if service == "ga4" and result["available"]:
-            ga4_id = config.get("ga4_property_id")
-            if not ga4_id:
-                result["available"] = False
-                result["error"] = (
-                    "Credentials found but no GA4 property ID configured. "
-                    f"Set GA4_PROPERTY_ID or add 'ga4_property_id' to {CONFIG_PATH}"
-                )
     else:
         result["error"] = f"Unknown service: {service}"
 
@@ -583,7 +565,7 @@ def detect_tier() -> dict:
 
     Returns:
         Dictionary with:
-            - tier: 0, 1, or 2
+            - tier: -1, 0, or 1
             - description: human-readable tier description
             - capabilities: list of available API groups
             - missing: what's needed for the next tier
@@ -592,7 +574,6 @@ def detect_tier() -> dict:
 
     has_api_key = bool(config.get("api_key"))
     has_authenticated = False
-    has_ga4 = False
     auth_method = None
 
     # Check OAuth token
@@ -616,21 +597,7 @@ def detect_tier() -> dict:
                 except (json.JSONDecodeError, IOError):
                     pass
 
-    if has_authenticated and config.get("ga4_property_id"):
-        has_ga4 = True
-
-    if has_ga4:
-        return {
-            "tier": 2,
-            "description": "Full (API key + Service Account + GA4)",
-            "capabilities": [
-                "PageSpeed Insights", "CrUX", "CrUX History",
-                "Search Console", "URL Inspection", "Sitemaps",
-                "Indexing API", "GA4 Organic Traffic",
-            ],
-            "missing": None,
-        }
-    elif has_authenticated:
+    if has_authenticated:
         return {
             "tier": 1,
             "description": "Authenticated (API key + OAuth/Service Account)",
@@ -639,7 +606,7 @@ def detect_tier() -> dict:
                 "Search Console", "URL Inspection", "Sitemaps",
                 "Indexing API",
             ],
-            "missing": "Add 'ga4_property_id' to unlock GA4 organic traffic reports",
+            "missing": None,
         }
     elif has_api_key:
         return {
@@ -679,21 +646,18 @@ Google SEO API Setup Instructions
    - PageSpeed Insights API
    - Chrome UX Report API
    - Web Search Indexing API (for Indexing API)
-   - Google Analytics Data API (for GA4)
 
 3. CREATE AN API KEY (for PSI, CrUX -- free, no service account needed)
    - APIs & Services > Credentials > Create Credentials > API key
    - Restrict to: PageSpeed Insights API, Chrome UX Report API
 
-4. CREATE A SERVICE ACCOUNT (for GSC, Indexing API, GA4)
+4. CREATE A SERVICE ACCOUNT (for GSC and the Indexing API)
    - IAM & Admin > Service Accounts > Create Service Account
    - Download JSON key file, store securely
 
 5. GRANT ACCESS
    - Search Console: Settings > Users and permissions > Add user
      Paste the service account client_email, set as Owner (for Indexing API) or Full (read-only)
-   - GA4: Admin > Property Access Management > Add
-     Paste email, set Viewer role
 
 6. CREATE CONFIG FILE
    mkdir -p ~/.config/codex-seo
@@ -702,8 +666,7 @@ Google SEO API Setup Instructions
    {
      "service_account_path": "/path/to/service_account.json",
      "api_key": "AIzaSy...",
-     "default_property": "sc-domain:example.com",
-     "ga4_property_id": "properties/123456789"
+     "default_property": "sc-domain:example.com"
    }
 
 7. VERIFY
@@ -712,7 +675,6 @@ Google SEO API Setup Instructions
 ENVIRONMENT VARIABLE ALTERNATIVES:
    GOOGLE_API_KEY              - API key
    GOOGLE_APPLICATION_CREDENTIALS - Path to service account JSON
-   GA4_PROPERTY_ID             - GA4 property ID (e.g., properties/123456789)
    GSC_PROPERTY                - Default Search Console property
 """)
 
@@ -726,7 +688,7 @@ def main():
         nargs="?",
         const="all",
         metavar="SERVICE",
-        help="Check credentials. Optionally specify service: psi, crux, gsc, indexing, ga4",
+        help="Check credentials. Optionally specify service: psi, crux, gsc, indexing",
     )
     parser.add_argument(
         "--setup",

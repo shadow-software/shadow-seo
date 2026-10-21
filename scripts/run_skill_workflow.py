@@ -318,7 +318,7 @@ def run_specialist(skill: str, target: str, output_root: Path | None = None) -> 
         status = "ready" if tier_level >= 0 else "setup_required"
         summary = [
             f"Detected Google API credential tier: {tier_level}.",
-            "PageSpeed/CrUX, Search Console, Indexing, GA4, and Ads features depend on configured Google credentials.",
+            "PageSpeed/CrUX, Search Console, Indexing, and Ads features depend on configured Google credentials.",
         ]
         issues = [] if status == "ready" else ["Google API credentials were not detected."]
         recommendations = ["Create `~/.config/codex-seo/google-api.json` or set the documented environment variables."]
